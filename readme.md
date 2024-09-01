@@ -107,7 +107,7 @@ If any of the input stack items is not a minimally-encoded script number then th
 
 The operation must fail if any resulting stack item would exceed `MAX_SCRIPT_ELEMENT_SIZE`.  
 Before this upgrade, the operation would fail if any resulting stack item would exceed `nMaxNumSize` which was set to 8 bytes.
-With this upgrade, that requirement has been removes and `MAX_SCRIPT_ELEMENT_SIZE` will be the new limit.
+With this upgrade, that requirement has been removed and `MAX_SCRIPT_ELEMENT_SIZE` will be the new limit.
 
 Any result must be returned as a minimally encoded script number, e.g. number 1 is to be returned as `01` rather than `0100`, number -1 is to be returned as `81` rather than `0180`, and number 0 is to be returned as empty stack item rather than `00`.
 
@@ -139,14 +139,20 @@ This will result in same size of the result.
 
 ##### OP_NOT (0x91)
 
-Pop one item from stack. If value is 0 change it to 1, else for all other values,  change it to 0. Push the result on the stack.
-This may reduce the size of the stack item to 0, e.g. if executed on `aabbdd` the result will be an empty stack item (0).
-Or, it may increase the size of the stack item from 0 to 1, e.g. if executed on  an empty stack item (0), it will yield `01`.
+Pop one item from stack.
+If value is 0 change it to 1, else (for any other value) change it to 0.
+Push the result on the stack.
+This may reduce the size of the stack item to 0, e.g. if executed on `aabbdd` the result will be an empty stack item (0), size of which is 0.
+Or, it may increase the size of the stack item from 0 to 1, e.g. if executed on an empty stack item (0) it will yield `01`.
 
 ##### OP_0NOTEQUAL (0x92)
 
-Pop one item from stack. If value is not 0 change it to 1. If it is 0, leave it unchanged. Push the result on stack.
-This may reduce the size of the stack item to 0, e.g. if executed on `aabbdd` the result will be an empty stack item (0). If executed for an empty stack item (0), it will leave the top stack item unchanged.
+Pop one item from stack.
+If value is not 0 change it to 1.
+If it is 0, leave it unchanged.
+Push the result on stack.
+This may reduce the size of the stack item to 1, e.g. if executed on `aabbdd` the result will be `01` (1), size of which is 1.
+If executed for an empty stack item (0), it will leave the top stack item unchanged.
 
 #### Binary Operations
 
@@ -166,12 +172,28 @@ Pop two items from stack, multiply the values together, push the result on stack
 
 ##### OP_DIV (0x96)
 
-Pop two items from stack, divide the 2nd-to-top value with the top-most value, push the **quotient** on stack, e.g. 3/2 will return 1, -3/2 will return -1, 3/-2 will return -1, and -3/-2 will return 1.
+Pop two items from stack.
+If the top-most item (divisor) is 0, fail immediately.
+Divide the 2nd-to-top value (dividend) with the top-most value (divisor).
+Push the **quotient** to stack, e.g.
+
+- 3/2 will return 1,
+- -3/2 will return -1,
+- 3/-2 will return -1, and
+- -3/-2 will return 1.
 
 ##### OP_MOD (0x97)
 
-Pop two items from stack, divide the 2nd-to-top value with the top-most value, push the **remainder** on stack.
-The sign of the result will match the sign of the dividend, e.g. 7/3 will return 1, -7/3 will return -1, 7/-3 will return 1, and -7/3 will return -1.
+Pop two items from stack.
+If the top-most item (divisor) is 0, fail immediately.
+Divide the 2nd-to-top value (dividend) with the top-most value (divisor).
+Push the **remainder** to stack.
+The sign of the result will match the sign of the dividend, e.g.
+
+- 7/3 will return 1,
+- -7/3 will return -1,
+- 7/-3 will return 1, and
+- -7/-3 will return -1.
 
 ##### OP_BOOLAND (0x9a)
 
@@ -236,13 +258,20 @@ Any ternary operation must fail if executed on stack depth of 2 or less.
 
 Pop three items from stack.  
 The top-most item defines the "right" and non-inclusive boundary of a range.  
-The 2nd-to-top item defines the "left" and includive boundary of a range.  
-The 3rd-to-top item is the value to be evaluated.  
-If value being evaluated is in the range (greater or equal to the "left" value, and less than the "right" value) then return 1, else return 0.
+The 2nd-to-top item defines the "left" and inclusive boundary of a range.  
+The 3rd-to-top item is the "value" to be evaluated.  
+If "value" being evaluated is in the range (greater or equal to the "left" value, and less than the "right" value) then return 1, else return 0.
 
-Examples: evaluating `1 5 8` will return 0, evaluating `5 5 8` will return 1, evaluating `7 5 8` will return 1, and evaluating `8 5 8` will return 0.
+Consider the following examples (shorthand for `<value> <left> <right> OP_WITHIN`):
 
-Uses where the "left" value is greater or equal to the "right" value are valid and will always return 0, e.g. `X 8 5` will return 0 for any value of X.
+- evaluating `1 5 8 OP` will return 0,
+- evaluating `5 5 8 OP` will return 1,
+- evaluating `7 5 8 OP` will return 1, and
+- evaluating `8 5 8 OP` will return 0.
+
+Uses where the "left" value is greater or equal to the "right" value are valid and will always return 0, e.g.
+
+- evaluating `X 8 5 OP` will return 0 for any value of X.
 
 ## Rationale
 
