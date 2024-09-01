@@ -88,11 +88,11 @@ This upgrade affects two non-arithmetic opcodes that are used to convert an arbi
 #### OP_NUM2BIN (0x80)
 
 Pop two items from stack.  
-The top-most value is read as desired length of the output's stack item, and the other one as numerical value to be converted.  
-If the length is greater than `MAX_SCRIPT_ELEMENT_SIZE`, fail immediately.  
-If the value is not a minimally-encoded script number, fail immediately.  
-If the length is less than size of the value, fail immediately.  
-Pad the numerical value with 0-bytes until desired length is reached and then push the result to stack.
+The top-most value is read as a desired length of the output's stack item, and the other one as binary value to be converted.  The length must be a minimally encoded script number, otherwise the script fails immediately. The binary value may be any length and does not need to start out as a minimally encoded script number, however.
+If the requested length is larger than `MAX_SCRIPT_ELEMENT_SIZE`, fail immediately.  
+The value is then transformed to a minimally-encoded script number (meaning trailing zeroes may be popped off). At this point the value's size may shrink.
+Then, if the new (possibly reduced) length of the value is larger than the requested length, fail immediately.  
+Otherwise, pad the value with 0-bytes until the desired length is reached and then push the result to stack.
 
 Executing the operation on value 0 and length 0 is valid and will return 0 as an empty stack item.  
 When positive values are padded the operation will simply add 0-bytes on the higher end, e.g. executing it on `7b` (123) and `05` (5) will return `7b00000000`.  
