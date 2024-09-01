@@ -68,7 +68,7 @@ Pop two items from stack.
 The top-most value is read as a desired length of the output's stack item, and the other one as binary value to be converted.  The length must be a minimally encoded script number, otherwise the script fails immediately. The binary value may be any length and does not need to start out as a minimally encoded script number, however.
 If the requested length is larger than `MAX_SCRIPT_ELEMENT_SIZE`, fail immediately.  
 The value is then transformed to a minimally-encoded script number (meaning trailing zeroes may be popped off). At this point the value's size may shrink.
-Then, if the new (possibly reduced) length of the value is less than the requested length, fail immediately.  
+Then, if the new (possibly reduced) length of the value is larger than the requested length, fail immediately.  
 Otherwise, pad the value with 0-bytes until the desired length is reached and then push the result to stack.
 
 Executing the operation on value 0 and length 0 is valid and will return 0 as an empty stack item.  
