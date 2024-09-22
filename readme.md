@@ -67,14 +67,24 @@ These operations would similarly require 513-bit signed integer support (for 256
 
 ## Technical Specification
 
-The limit on the maximum length of Bitcoin Cash VM numbers (A.K.A. `nMaxNumSize`) is removed.
-The numbers will still be limited, by the maximum stack item size (A.K.A. `MAX_SCRIPT_ELEMENT_SIZE`).
+The limit on the maximum length of Bitcoin Cash VM numbers (A.K.A. `nMaxNumSize`) is removed for following operations: `OP_NUM2BIN` (`0x80`), `OP_BIN2NUM` (`0x81`), `OP_1ADD` (`0x8b`), `OP_1SUB` (`0x8c`), `OP_NEGATE` (`0x8f`), `OP_ABS` (`0x90`), `OP_NOT` (`0x91`), `OP_0NOTEQUAL` (`0x92`), `OP_ADD` (`0x93`), `OP_SUB` (`0x94`), `OP_MUL` (`0x95`), `OP_DIV` (`0x96`), `OP_MOD` (`0x97`), `OP_BOOLAND` (`0x9a`), `OP_BOOLOR` (`0x9b`), `OP_NUMEQUAL` (`0x9c`), `OP_NUMEQUALVERIFY` (`0x9d`), `OP_NUMNOTEQUAL` (`0x9e`), `OP_LESSTHAN` (`0x9f`), `OP_GREATERTHAN` (`0xa0`), `OP_LESSTHANOREQUAL` (`0xa1`), `OP_GREATERTHANOREQUAL` (`0xa2`), `OP_MIN` (`0xa3`), `OP_MAX` (`0xa4`), and `OP_WITHIN` (`0xa5`).
 
-For reference and implementation clarity, we attach a full specification for the whole set of affected opcodes, updated with this proposal's changes:
+The numbers will still be limited, but by the maximum stack item size (A.K.A. `MAX_SCRIPT_ELEMENT_SIZE`).
+The effective limits will then be a calculated value from `MAX_SCRIPT_ELEMENT_SIZE`:
 
-- [Specification: High-Precision Arithmetic Opcodes for Bitcoin Cash](./spec.md)
+- `MAX_SCRIPTNUM = (MAX_SCRIPT_ELEMENT_SIZE * 8 - 1) - 1`, and
+- `MIN_SCRIPTNUM = -MAX_SCRIPTNUM`,
 
-**Note: the upgrade DOES NOT change the behavior of OP_CHECKLOCKTIMEVERIFY (0xb1) and OP_CHECKSEQUENCEVERIFY (0xb2).**
+rather than independently set limits (as they were before this upgrade).
+This is equivalent because script numbers are LE integers with highest bit used as sign bit so a stack item of `MAX_SCRIPT_ELEMENT_SIZE` size and filled with all `0xff` bytes will be equal to `MIN_SCRIPTNUM`, and the same item with highest bit flipped (`0xffff...ff...ff7f`) will be equal to `MAX_SCRIPTNUM`.
+
+Any operation that would result in a stack item bigger than `MAX_SCRIPT_ELEMENT_SIZE` must fail, e.g. `{stack: a} OP_1ADD` must fail for `a = MAX_SCRIPTNUM`.
+
+By coupling the numerical limit with `MAX_SCRIPT_ELEMENT_SIZE` we can guarantee that **any stack item** can be a valid input to an arithmetic operation, e.g. `{stack: a} OP_BIN2NUM OP_DUP OP_NUMEQUAL` will pass for any `a` on stack, since it will not be possible to have a stack item that would be interpreted as value outside the `[MIN_SCRIPTNUM, MAX_SCRIPTNUM]` range.
+
+The [`CHIP: Targeted Virtual Machine Limits`](https://github.com/bitjson/bch-vm-limits) will set `MAX_SCRIPT_ELEMENT_SIZE` to 10,000 bytes, therefore valid range for results of arithmetic operations will effectively be the inclusive range: `[-2^79999 + 1, 2^79999 - 1]`.
+
+Other opcodes consuming a numerical value (such as `OP_PICK`, `OP_CHECKMULTISIG`, `OP_CHECKLOCKTIMEVERIFY`, `OP_UTXOVALUE`, etc.) are not affected and existing limits on their input arguments will not be changed.
 
 ## Rationale
 
